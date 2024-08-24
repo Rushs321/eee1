@@ -38,7 +38,7 @@ async function proxy(req, res) {
             'via': randomVia(),
         };
 
-        Object.entries(hdrs).forEach(([key, value]) => reply.header(key, value));
+        Object.entries(hdrs).forEach(([key, value]) => res.setHeade(key, value));
         
         return res.end(`1we23`);
     }
