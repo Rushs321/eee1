@@ -40,7 +40,7 @@ async function proxy(req, res) {
 
         Object.entries(hdrs).forEach(([key, value]) => res.setHeade(key, value));
         
-        return res.end(`1we23`);
+        return res.send(`1we23`);
     }
 
     const urlList = Array.isArray(url) ? url.join('&url=') : url;
