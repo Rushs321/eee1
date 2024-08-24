@@ -32,7 +32,7 @@ async function proxy(req, res) {
         const ipAddress = generateRandomIP();
         const ua = randomUserAgent();
         const hdrs = {
-            ...pick(request.headers, ['cookie', 'dnt', 'referer']),
+            ...pick(req.headers, ['cookie', 'dnt', 'referer']),
             'x-forwarded-for': ipAddress,
             'user-agent': ua,
             'via': randomVia(),
