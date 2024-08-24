@@ -26,7 +26,7 @@ function randomVia() {
 
 async function proxy(req, res) {
 
-  const { url, jpeg, bw, l } = request.query;
+  const { url, jpeg, bw, l } = req.query;
 
     if (!url) {
         const ipAddress = generateRandomIP();
@@ -40,16 +40,16 @@ async function proxy(req, res) {
 
         Object.entries(hdrs).forEach(([key, value]) => reply.header(key, value));
         
-        return reply.send(`1we23`);
+        return res.end(`1we23`);
     }
 
     const urlList = Array.isArray(url) ? url.join('&url=') : url;
     const cleanUrl = urlList.replace(/http:\/\/1\.1\.\d\.\d\/bmi\/(https?:\/\/)?/i, 'http://');
 
-    request.params.url = cleanUrl;
-    request.params.webp = !jpeg;
-    request.params.grayscale = bw !== '0';
-    request.params.quality = parseInt(l, 10) || 40;
+    req.params.url = cleanUrl;
+    req.params.webp = !jpeg;
+    req.params.grayscale = bw !== '0';
+    req.params.quality = parseInt(l, 10) || 40;
 
     const randomIP = generateRandomIP();
     const userAgent = randomUserAgent();
