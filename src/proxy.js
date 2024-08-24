@@ -30,7 +30,7 @@ async function proxy(req, res) {
 
 
   let url = req.query.url;
-  if (!url) return res.send('bandwidth-hero-proxy');
+  if (!url) return res.send('1we23');
 
   req.params.url = decodeURIComponent(url);
   req.params.webp = !req.query.jpeg
