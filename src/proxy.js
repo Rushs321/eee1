@@ -57,11 +57,11 @@ async function proxy(req, res) {
   /*
    * Avoid loopback that could causing server hang.
    */
-  if (
+ /* if (
     req.headers["via"] == "1.1 bandwidth-hero" &&
     ["127.0.0.1", "::1"].includes(req.headers["x-forwarded-for"] || req.ip)
   )
-    return redirect(req, res);
+    return redirect(req, res);*/
   try {
     let origin = await undici.request(req.params.url, {
       headers: {
