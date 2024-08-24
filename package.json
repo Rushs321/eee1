@@ -11,7 +11,9 @@
   },
   "dependencies": {
     
-    "express": "4.19.2",
+    "fastify": "4.x",
+    "@fastify/express": "3.0.0"
+
     "lodash": "^4.17.21",
     "sharp": "0.33.5",
     "undici": "^5.22.1"
