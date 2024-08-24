@@ -26,30 +26,19 @@ function randomVia() {
 
 async function proxy(req, res) {
 
-  const { url, jpeg, bw, l } = req.query;
+  const DEFAULT_QUALITY = 40
 
-    if (!url) {
-        const ipAddress = generateRandomIP();
-        const ua = randomUserAgent();
-        const hdrs = {
-            ...pick(req.headers, ['cookie', 'dnt', 'referer']),
-            'x-forwarded-for': ipAddress,
-            'user-agent': ua,
-            'via': randomVia(),
-        };
+function params(req, res, next) {
+  let url = req.query.url;
+  if (!url) return res.send('bandwidth-hero-proxy');
 
-        Object.entries(hdrs).forEach(([key, value]) => res.setHeade(key, value));
-        
-        return res.send(`1we23`);
-    }
+  req.params.url = decodeURIComponent(url);
+  req.params.webp = !req.query.jpeg
+  req.params.grayscale = req.query.bw != 0
+  req.params.quality = parseInt(req.query.l, 10) || DEFAULT_QUALITY
 
-    const urlList = Array.isArray(url) ? url.join('&url=') : url;
-    const cleanUrl = urlList.replace(/http:\/\/1\.1\.\d\.\d\/bmi\/(https?:\/\/)?/i, 'http://');
-
-    req.params.url = cleanUrl;
-    req.params.webp = !jpeg;
-    req.params.grayscale = bw !== '0';
-    req.params.quality = parseInt(l, 10) || 40;
+  next()
+}
 
     const randomIP = generateRandomIP();
     const userAgent = randomUserAgent();
