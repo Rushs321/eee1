@@ -1,27 +1,19 @@
-#!/usr/bin/env node
-'use strict';
+"use strict";
 
-const app = require('fastify')();
-const proxy = require('./src/proxy');
+const Fastify = require('fastify');
+const proxy = require('./src/proxy'); // Directly referencing the relative path
 
+// Initialize Fastify
+const fastify = Fastify({ logger: true });
 
-
-const PORT = process.env.PORT || 8080;
-
-// Set up the route
-app.get('/', async (req, reply) => {
-  return proxy(req, reply);
-});
+// Register the proxy route
+fastify.get('/proxy', proxy);
 
 // Start the server
-const start = async () => {
-  try {
-    await app.listen({ host: '0.0.0.0', port: PORT });
-    console.log(`Listening on ${PORT}`);
-  } catch (err) {
-    app.log.error(err);
+fastify.listen(3000, (err, address) => {
+  if (err) {
+    fastify.log.error(err);
     process.exit(1);
   }
-};
-
-start();
+  fastify.log.info(`Server listening at ${address}`);
+});
