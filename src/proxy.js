@@ -8,49 +8,49 @@ const compress = require("./compress");
 const copyHeaders = require("./copyHeaders");
 
 const viaHeaders = [
-    '1.1 example-proxy-service.com (ExampleProxy/1.0)',
-    '1.0 another-proxy.net (Proxy/2.0)',
-    '1.1 different-proxy-system.org (DifferentProxy/3.1)',
-    '1.1 some-proxy.com (GenericProxy/4.0)',
+  '1.1 example-proxy-service.com (ExampleProxy/1.0)',
+  '1.0 another-proxy.net (Proxy/2.0)',
+  '1.1 different-proxy-system.org (DifferentProxy/3.1)',
+  '1.1 some-proxy.com (GenericProxy/4.0)',
 ];
 
 function randomVia() {
-    const index = Math.floor(Math.random() * viaHeaders.length);
-    return viaHeaders[index];
+  const index = Math.floor(Math.random() * viaHeaders.length);
+  return viaHeaders[index];
 }
 
-async function proxy(req, reply) {
+async function proxy(request, reply) {
 
   const DEFAULT_QUALITY = 40;
 
-  let url = req.query.url;
-  if (!url){ 
-      const ipAddress = generateRandomIP();
-      const ua = randomUserAgent();
-      const hdrs = {
-          ...pick(req.headers, ["cookie", "dnt", "referer", "range"]),
-          'user-agent': ua,
-          'x-forwarded-for': ipAddress,
-          'via': randomVia(),
-      };
-          
-      Object.entries(hdrs).forEach(([key, value]) => reply.header(key, value));
-      
-      return reply.send('1we23');
+  let url = request.query.url;
+  if (!url) { 
+    const ipAddress = generateRandomIP();
+    const ua = randomUserAgent();
+    const hdrs = {
+      ...pick(request.headers, ["cookie", "dnt", "referer", "range"]),
+      'user-agent': ua,
+      'x-forwarded-for': ipAddress,
+      'via': randomVia(),
+    };
+
+    Object.entries(hdrs).forEach(([key, value]) => reply.header(key, value));
+
+    return reply.send('1we23');
   }
 
-  req.params.url = decodeURIComponent(url);
-  req.params.webp = !req.query.jpeg;
-  req.params.grayscale = req.query.bw != 0;
-  req.params.quality = parseInt(req.query.l, 10) || DEFAULT_QUALITY;
+  request.params.url = decodeURIComponent(url);
+  request.params.webp = !request.query.jpeg;
+  request.params.grayscale = request.query.bw != 0;
+  request.params.quality = parseInt(request.query.l, 10) || DEFAULT_QUALITY;
 
   const randomIP = generateRandomIP();
   const userAgent = randomUserAgent();
 
   try {
-    let origin = await undici.request(req.params.url, {
+    let origin = await undici.request(request.params.url, {
       headers: {
-        ...pick(req.headers, ["cookie", "dnt", "referer", "range"]),
+        ...pick(request.headers, ["cookie", "dnt", "referer", "range"]),
         'user-agent': userAgent,
         'x-forwarded-for': randomIP,
         'via': randomVia(),
@@ -58,41 +58,40 @@ async function proxy(req, reply) {
       timeout: 10000,
       maxRedirections: 4
     });
-    _onRequestResponse(origin, req, reply);
+    _onRequestResponse(origin, request, reply);
   } catch (err) {
-    _onRequestError(req, reply, err);
+    _onRequestError(request, reply, err);
   }
 }
 
-function _onRequestError(req, reply, err) {
+function _onRequestError(request, reply, err) {
   if (err.code === "ERR_INVALID_URL") return reply.status(400).send("Invalid URL");
 
-  redirect(req, reply);
+  redirect(request, reply);
   console.error(err);
 }
 
-function _onRequestResponse(origin, req, reply) {
+function _onRequestResponse(origin, request, reply) {
   if (origin.statusCode >= 400)
-    return redirect(req, reply);
+    return redirect(request, reply);
 
   if (origin.statusCode >= 300 && origin.headers.location)
-    return redirect(req, reply);
+    return redirect(request, reply);
 
   copyHeaders(origin, reply);
-  reply.header("content-encoding", "identity");
-  reply.header("Access-Control-Allow-Origin", "*");
-  reply.header("Cross-Origin-Resource-Policy", "cross-origin");
-  reply.header("Cross-Origin-Embedder-Policy", "unsafe-none");
-  req.params.originType = origin.headers["content-type"] || "";
-  req.params.originSize = origin.headers["content-length"] || "0";
+  reply
+    .header("content-encoding", "identity")
+    .header("Access-Control-Allow-Origin", "*")
+    .header("Cross-Origin-Resource-Policy", "cross-origin")
+    .header("Cross-Origin-Embedder-Policy", "unsafe-none");
+    
+  request.params.originType = origin.headers["content-type"] || "";
+  request.params.originSize = origin.headers["content-length"] || "0";
 
-  origin.body.on('error', (err) => {
-    req.log.error('Stream error:', err);
-    req.destroy();
-  });
+  origin.body.on('error', _ => request.raw.destroy());
 
-  if (shouldCompress(req)) {
-    return compress(req, reply, origin);
+  if (shouldCompress(request)) {
+    return compress(request, reply, origin);
   } else {
     reply.header("x-proxy-bypass", 1);
 
@@ -101,10 +100,7 @@ function _onRequestResponse(origin, req, reply) {
         reply.header(headerName, origin.headers[headerName]);
     }
 
-    origin.body.pipe(reply.raw).on('error', (err) => {
-      req.log.error('Pipe error:', err);
-      req.destroy();
-    });
+    return origin.body.pipe(reply.raw);
   }
 }
 
