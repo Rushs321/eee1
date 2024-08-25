@@ -2,7 +2,7 @@
 
 const Fastify = require('fastify');
 const proxy = require('./src/proxy'); // Directly referencing the relative path
-
+const PORT = process.env.PORT || 3000;
 // Initialize Fastify
 const fastify = Fastify({ logger: true });
 
