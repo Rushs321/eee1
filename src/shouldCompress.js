@@ -3,7 +3,7 @@ const MIN_COMPRESS_LENGTH = 1024;
 const MIN_TRANSPARENT_COMPRESS_LENGTH = MIN_COMPRESS_LENGTH * 100;
 
 function shouldCompress(request) {
-  const { originType, originSize, webp } = request.params;
+  const { originType, originSize, webp } = request.query;
 
   if (!originType.startsWith('image')) return false;
   if (originSize === 0) return false;
