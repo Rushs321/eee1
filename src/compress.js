@@ -4,31 +4,29 @@ const redirect = require('./redirect');
 
 const sharpStream = _ => sharp({ animated: !process.env.NO_ANIMATE, unlimited: true });
 
-function compress(req, reply, input) {
-  const format = req.params.webp ? 'webp' : 'jpeg';
+function compress(request, reply, input) {
+  const format = request.params.webp ? 'webp' : 'jpeg';
 
   input.body.pipe(sharpStream()
-    .grayscale(req.params.grayscale)
+    .grayscale(request.params.grayscale)
     .toFormat(format, {
-      quality: req.params.quality,
+      quality: request.params.quality,
       progressive: true,
       optimizeScans: true
     })
-    .toBuffer((err, output, info) => _sendResponse(err, output, info, format, req, reply)));
+    .toBuffer((err, output, info) => _sendResponse(err, output, info, format, request, reply)));
 }
 
-function _sendResponse(err, output, info, format, req, reply) {
-  if (err || !info) return redirect(req, reply);
+function _sendResponse(err, output, info, format, request, reply) {
+  if (err || !info) return redirect(request, reply);
 
-  if (!reply.sent) {
-    reply
-      .header('content-type', 'image/' + format)
-      .header('content-length', info.size)
-      .header('x-original-size', req.params.originSize)
-      .header('x-bytes-saved', req.params.originSize - info.size)
-      .status(200)
-      .send(output);
-  }
+  reply
+    .header('content-type', 'image/' + format)
+    .header('content-length', info.size)
+    .header('x-original-size', request.params.originSize)
+    .header('x-bytes-saved', request.params.originSize - info.size)
+    .status(200)
+    .send(output);
 }
 
 module.exports = compress;
