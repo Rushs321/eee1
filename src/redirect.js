@@ -1,5 +1,5 @@
 "use strict";
-function redirect(req, reply) {
+function redirect(request, reply) {
   if (reply.sent) return;
 
   reply
@@ -8,7 +8,7 @@ function redirect(req, reply) {
     .removeHeader('expires')
     .removeHeader('date')
     .removeHeader('etag')
-    .header('location', encodeURI(req.params.url))
+    .header('location', encodeURI(request.params.url))
     .status(302)
     .send();
 }
