@@ -10,10 +10,9 @@ const fastify = Fastify({ logger: true });
 fastify.get('/proxy', proxy);
 
 // Start the server
-fastify.listen(3000, (err, address) => {
+fastify.listen({host: '0.0.0.0' , port: PORT }, function (err, address) {
   if (err) {
-    fastify.log.error(err);
-    process.exit(1);
+    fastify.log.error(err)
+    process.exit(1)
   }
-  fastify.log.info(`Server listening at ${address}`);
 });
