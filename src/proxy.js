@@ -86,7 +86,10 @@ function _onRequestResponse(origin, req, reply) {
   req.params.originType = origin.headers["content-type"] || "";
   req.params.originSize = origin.headers["content-length"] || "0";
 
-  origin.body.on('error', _ => req.socket.destroy());
+  origin.body.on('error', (err) => {
+    req.log.error('Stream error:', err);
+    req.destroy();
+  });
 
   if (shouldCompress(req)) {
     return compress(req, reply, origin);
@@ -98,7 +101,10 @@ function _onRequestResponse(origin, req, reply) {
         reply.header(headerName, origin.headers[headerName]);
     }
 
-    return origin.body.pipe(reply.raw);
+    origin.body.pipe(reply.raw).on('error', (err) => {
+      req.log.error('Pipe error:', err);
+      req.destroy();
+    });
   }
 }
 
