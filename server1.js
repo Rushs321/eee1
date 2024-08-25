@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 'use strict';
 
-const fastify = require('fastify')();
+const app = require('fastify')();
 const proxy = require('./src/proxy');
 
 
