@@ -9,8 +9,8 @@ const proxy = require('./src/proxy');
 const PORT = process.env.PORT || 8080;
 
 // Set up the route
-app.get('/', async (request, reply) => {
-  return processRequest(request, reply);
+app.get('/', async (req, reply) => {
+  return proxy(req, reply);
 });
 
 // Start the server
