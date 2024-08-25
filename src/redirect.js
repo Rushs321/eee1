@@ -1,15 +1,11 @@
 "use strict";
 function redirect(request, reply) {
-  if (reply.sent) return;
+  if (reply.raw.headersSent) return;
 
   reply
-    .header('content-length', 0)
-    .removeHeader('cache-control')
-    .removeHeader('expires')
-    .removeHeader('date')
-    .removeHeader('etag')
-    .header('location', encodeURI(request.params.url))
     .status(302)
+    .header('content-length', 0)
+    .header('location', encodeURI(request.query.url))
     .send();
 }
 
