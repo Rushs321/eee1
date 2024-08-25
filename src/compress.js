@@ -20,13 +20,15 @@ function compress(req, reply, input) {
 function _sendResponse(err, output, info, format, req, reply) {
   if (err || !info) return redirect(req, reply);
 
-  reply
-    .header('content-type', 'image/' + format)
-    .header('content-length', info.size)
-    .header('x-original-size', req.params.originSize)
-    .header('x-bytes-saved', req.params.originSize - info.size)
-    .status(200)
-    .send(output);
+  if (!reply.sent) {
+    reply
+      .header('content-type', 'image/' + format)
+      .header('content-length', info.size)
+      .header('x-original-size', req.params.originSize)
+      .header('x-bytes-saved', req.params.originSize - info.size)
+      .status(200)
+      .send(output);
+  }
 }
 
 module.exports = compress;
