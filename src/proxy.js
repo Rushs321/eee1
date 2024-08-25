@@ -79,11 +79,6 @@ function _onRequestResponse(origin, request, reply) {
     return redirect(request, reply);
 
   copyHeaders(origin, reply);
-  reply
-    .header("content-encoding", "identity")
-    .header("Access-Control-Allow-Origin", "*")
-    .header("Cross-Origin-Resource-Policy", "cross-origin")
-    .header("Cross-Origin-Embedder-Policy", "unsafe-none");
     
   request.params.originType = origin.headers["content-type"] || "";
   request.params.originSize = origin.headers["content-length"] || "0";
