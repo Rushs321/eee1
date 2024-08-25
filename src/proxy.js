@@ -20,7 +20,6 @@ function randomVia() {
 }
 
 async function proxy(request, reply) {
-
   const DEFAULT_QUALITY = 40;
 
   let url = request.query.url;
@@ -67,23 +66,36 @@ async function proxy(request, reply) {
 function _onRequestError(request, reply, err) {
   if (err.code === "ERR_INVALID_URL") return reply.status(400).send("Invalid URL");
 
-  redirect(request, reply);
-  console.error(err);
+  if (!reply.sent) {
+    redirect(request, reply);
+    console.error(err);
+  }
 }
 
 function _onRequestResponse(origin, request, reply) {
-  if (origin.statusCode >= 400)
-    return redirect(request, reply);
+  if (origin.statusCode >= 400) {
+    if (!reply.sent) redirect(request, reply);
+    return;
+  }
 
-  if (origin.statusCode >= 300 && origin.headers.location)
-    return redirect(request, reply);
+  if (origin.statusCode >= 300 && origin.headers.location) {
+    if (!reply.sent) redirect(request, reply);
+    return;
+  }
 
   copyHeaders(origin, reply);
-    
+  reply
+    .header("content-encoding", "identity")
+    .header("Access-Control-Allow-Origin", "*")
+    .header("Cross-Origin-Resource-Policy", "cross-origin")
+    .header("Cross-Origin-Embedder-Policy", "unsafe-none");
+
   request.params.originType = origin.headers["content-type"] || "";
   request.params.originSize = origin.headers["content-length"] || "0";
 
-  origin.body.on('error', _ => request.raw.destroy());
+  origin.body.on('error', _ => {
+    if (!reply.sent) reply.raw.destroy();
+  });
 
   if (shouldCompress(request)) {
     return compress(request, reply, origin);
@@ -91,11 +103,17 @@ function _onRequestResponse(origin, request, reply) {
     reply.header("x-proxy-bypass", 1);
 
     for (const headerName of ["accept-ranges", "content-type", "content-length", "content-range"]) {
-      if (headerName in origin.headers)
+      if (headerName in origin.headers) {
         reply.header(headerName, origin.headers[headerName]);
+      }
     }
 
-    return origin.body.pipe(reply.raw);
+    origin.body.pipe(reply.raw).on('error', err => {
+      if (!reply.sent) {
+        console.error(err);
+        reply.raw.destroy();
+      }
+    });
   }
 }
 
