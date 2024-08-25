@@ -1,8 +1,8 @@
 "use strict";
-function copyHeaders(source, target) {
+function copyHeaders(source, reply) {
   for (const [key, value] of Object.entries(source.headers)) {
     try {
-      target.header(key, value);
+      reply.header(key, value);
     } catch (e) {
       console.log(e.message);
     }
