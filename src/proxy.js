@@ -20,10 +20,8 @@ function randomVia() {
 }
 
 async function proxy(request, reply) {
-  const DEFAULT_QUALITY = 40;
-
   let url = request.query.url;
-  if (!url) { 
+  if (!url) {
     const ipAddress = generateRandomIP();
     const ua = randomUserAgent();
     const hdrs = {
@@ -33,21 +31,20 @@ async function proxy(request, reply) {
       'via': randomVia(),
     };
 
-    Object.entries(hdrs).forEach(([key, value]) => reply.header(key, value));
-
-    return reply.send('1we23');
+    reply.headers(hdrs).send('1we23');
+    return;
   }
 
-  request.params.url = decodeURIComponent(url);
-  request.params.webp = !request.query.jpeg;
-  request.params.grayscale = request.query.bw != 0;
-  request.params.quality = parseInt(request.query.l, 10) || DEFAULT_QUALITY;
+  request.query.url = decodeURIComponent(url);
+  request.query.webp = !request.query.jpeg;
+  request.query.grayscale = request.query.bw != 0;
+  request.query.quality = parseInt(request.query.l, 10) || 40;
 
   const randomIP = generateRandomIP();
   const userAgent = randomUserAgent();
 
   try {
-    let origin = await undici.request(request.params.url, {
+    const origin = await undici.request(request.query.url, {
       headers: {
         ...pick(request.headers, ["cookie", "dnt", "referer", "range"]),
         'user-agent': userAgent,
@@ -57,6 +54,7 @@ async function proxy(request, reply) {
       timeout: 10000,
       maxRedirections: 4
     });
+
     _onRequestResponse(origin, request, reply);
   } catch (err) {
     _onRequestError(request, reply, err);
@@ -65,22 +63,13 @@ async function proxy(request, reply) {
 
 function _onRequestError(request, reply, err) {
   if (err.code === "ERR_INVALID_URL") return reply.status(400).send("Invalid URL");
-
-  if (!reply.sent) {
-    redirect(request, reply);
-    console.error(err);
-  }
+  redirect(request, reply);
+  console.error(err);
 }
 
 function _onRequestResponse(origin, request, reply) {
-  if (origin.statusCode >= 400) {
-    if (!reply.sent) redirect(request, reply);
-    return;
-  }
-
-  if (origin.statusCode >= 300 && origin.headers.location) {
-    if (!reply.sent) redirect(request, reply);
-    return;
+  if (origin.statusCode >= 400 || (origin.statusCode >= 300 && origin.headers.location)) {
+    return redirect(request, reply);
   }
 
   copyHeaders(origin, reply);
@@ -90,30 +79,21 @@ function _onRequestResponse(origin, request, reply) {
     .header("Cross-Origin-Resource-Policy", "cross-origin")
     .header("Cross-Origin-Embedder-Policy", "unsafe-none");
 
-  request.params.originType = origin.headers["content-type"] || "";
-  request.params.originSize = origin.headers["content-length"] || "0";
+  request.query.originType = origin.headers["content-type"] || "";
+  request.query.originSize = origin.headers["content-length"] || "0";
 
-  origin.body.on('error', _ => {
-    if (!reply.sent) reply.raw.destroy();
-  });
+  origin.body.on('error', () => request.socket.destroy());
 
   if (shouldCompress(request)) {
-    return compress(request, reply, origin);
+    return compress(request, reply, origin.body);
   } else {
     reply.header("x-proxy-bypass", 1);
-
     for (const headerName of ["accept-ranges", "content-type", "content-length", "content-range"]) {
       if (headerName in origin.headers) {
         reply.header(headerName, origin.headers[headerName]);
       }
     }
-
-    origin.body.pipe(reply.raw).on('error', err => {
-      if (!reply.sent) {
-        console.error(err);
-        reply.raw.destroy();
-      }
-    });
+    origin.body.pipe(reply.raw);
   }
 }
 
